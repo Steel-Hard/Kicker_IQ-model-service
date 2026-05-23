@@ -1,7 +1,12 @@
 import app from "./app"
+import dontenv from "dotenv"
 
-const port = 3000
+dontenv.config();
 
-app.listen(port, '0.0.0.0', () => {
+const {PORT} = process.env;
+
+const port = PORT || 3002;
+
+app.listen(port, () => {
     console.log(`✅ | Servidor rodando na porta http://0.0.0.0:${port}`)
 })
