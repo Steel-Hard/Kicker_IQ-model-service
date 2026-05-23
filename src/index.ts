@@ -8,6 +8,5 @@ const {PORT} = process.env;
 const port = PORT || 3002;
 
 app.listen(port, () => {
-app.listen(port, () => {
     console.log(`✅ | Servidor rodando na porta http://0.0.0.0:${port}`)
 })
