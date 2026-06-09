@@ -8,7 +8,7 @@ class MatchController {
     /**
      * `POST | http://0.0.0.0:0000/match/predict`
      */
-    public async matchPredict(req: Request<{}, {}, PlayerMetricsInput>, res: Response): Promise<void> {
+    public async matchPredict(req: Request<Record<string, never>, unknown, PlayerMetricsInput>, res: Response): Promise<void> {
         try {
             const match = req.body
 
