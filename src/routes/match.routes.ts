@@ -12,6 +12,11 @@ class MatchRoutes {
             this.url + "/predict",
             this.matchController.matchPredict.bind(this.matchController)
         )
+
+        this.router.post(
+            "/athletes/batch-predict",
+            this.matchController.batchPredict.bind(this.matchController)
+        )
     }
 
     public getRouter() {

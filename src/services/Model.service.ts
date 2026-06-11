@@ -81,6 +81,50 @@ class ModelService {
         }
     }
 
+    public async checkReadiness(): Promise<{
+        model: "loaded" | "error"
+        scaler: "loaded" | "error"
+        errors: string[]
+    }> {
+        const errors: string[] = []
+
+        const scalerExists = fs.existsSync(path.resolve(this.scalerPath))
+        const modelExists = fs.existsSync(path.resolve(this.modelPath))
+
+        let scaler: "loaded" | "error" = "loaded"
+        let model: "loaded" | "error" = "loaded"
+
+        if (!scalerExists) {
+            scaler = "error"
+            errors.push("scaler_params.json not found")
+        }
+
+        if (!modelExists) {
+            model = "error"
+            errors.push("player-profile-clustering.onnx not found")
+        }
+
+        if (scalerExists && !this.scaler) {
+            scaler = "error"
+            errors.push("scaler not loaded")
+        }
+
+        if (modelExists) {
+            try {
+                await this.getSession()
+            } catch (error: unknown) {
+                model = "error"
+                errors.push(error instanceof Error ? error.message : "cannot load ONNX session")
+            }
+        }
+
+        return {
+            model,
+            scaler,
+            errors,
+        }
+    }
+
     private normalize(values: number[]): number[] {
         return values.map((value, i) => (value - this.scaler.mean[i]) / this.scaler.scale[i])
     }

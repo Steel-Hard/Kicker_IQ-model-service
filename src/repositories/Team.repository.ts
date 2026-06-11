@@ -1,53 +1,47 @@
 import db from "../db"
-import PlayerMetricsInput from "../types/PlayerMetrics"
 import { AnalyticsSessionRow } from "../types/TeamAnalytics"
 
-class AthleteRepository {
-    public async selectMatchWholeSessionPerAthlete(athleteId: number): Promise<PlayerMetricsInput[]> {
+class TeamRepository {
+    public async selectDistinctAthleteIds(): Promise<number[]> {
         const query = `
-            SELECT
-                COALESCE(p."Distance (m)", 0)::double precision                       AS "distanceM",
-                COALESCE(p."High Intensity Running (m)", 0)::double precision         AS "highIntensityRunningM",
-                COALESCE(p."No. of High Intensity Events", 0)::double precision       AS "highIntensityEvents",
-                COALESCE(p."Sprint Distance (m)", 0)::double precision                 AS "sprintDistanceM",
-                COALESCE(p."No. of Sprints", 0)::double precision                      AS "numberOfSprints",
-                COALESCE(p."Top Speed (kph)", 0)::double precision                     AS "topSpeedKph",
-                COALESCE(p."Avg Speed (kph)", 0)::double precision                     AS "avgSpeedKph",
-                COALESCE(p."Accelerations", 0)::double precision                       AS "accelerations",
-                COALESCE(p."Decelerations", 0)::double precision                       AS "decelerations",
-                COALESCE(p."Metres per Minute (m)", 0)::double precision               AS "metresPerMinuteM",
-                COALESCE(p."Workload Intensity", 0)::double precision                  AS "workloadIntensity"
+            SELECT DISTINCT p."Athlete ID" AS id
             FROM public.players p
-            WHERE p."Athlete ID" = $1
-                AND p."Segment Name" = 'Whole Session'
-            ORDER BY p."Start Date" ASC, p."Start Time" ASC
+            WHERE p."Athlete ID" IS NOT NULL
+            ORDER BY p."Athlete ID" ASC
         `
-        const res = await db.query(query, [athleteId])
-        return res.rows as PlayerMetricsInput[]
+
+        const res = await db.query(query)
+        return res.rows.map((row: { id: number }) => Number(row.id))
     }
 
-    public async selectAthlete(athleteId: number) {
+    public async selectAvailableSegments(): Promise<string[]> {
         const query = `
-            SELECT p."Athlete ID" AS id
+            SELECT DISTINCT p."Segment Name" AS segment
             FROM public.players p
-            WHERE p."Athlete ID" = $1
-            LIMIT 1
+            WHERE p."Segment Name" IS NOT NULL
+            ORDER BY p."Segment Name" ASC
         `
-        const res = await db.query(query, [athleteId])
-        return res.rows[0]
+
+        const res = await db.query(query)
+        return res.rows.map((row: { segment: string }) => row.segment)
     }
 
-    public async selectSessionsForAthleteAnalytics(filters: {
-        athleteId: number
+    public async selectSessionsForAnalytics(filters: {
+        ids?: number[]
         from?: string
         to?: string
         segment: string
     }): Promise<AnalyticsSessionRow[]> {
         const conditions: string[] = [
-            'p."Athlete ID" = $1',
-            'p."Segment Name" = $2',
+            'p."Athlete ID" IS NOT NULL',
+            'p."Segment Name" = $1',
         ]
-        const params: Array<number | string> = [filters.athleteId, filters.segment]
+        const params: Array<string | number[] | number> = [filters.segment]
+
+        if (filters.ids && filters.ids.length > 0) {
+            params.push(filters.ids)
+            conditions.push(`p."Athlete ID" = ANY($${params.length})`)
+        }
 
         if (filters.from) {
             params.push(filters.from)
@@ -118,4 +112,4 @@ class AthleteRepository {
     }
 }
 
-export default AthleteRepository
+export default TeamRepository
