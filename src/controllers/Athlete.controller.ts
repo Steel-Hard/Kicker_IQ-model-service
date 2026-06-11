@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import AthleteService from "../services/Athlete.service";
+import { parseDateParam, parseNumericId, parseSegmentParam } from "../utils/queryValidators";
+import sendControllerError from "../utils/controllerError";
 
 class AthleteController {
     private athleteService: AthleteService = new AthleteService()
@@ -30,8 +32,59 @@ class AthleteController {
             const response = await this.athleteService.calcAthleteType(Number(id))
             res.status(200).json(response)
         } catch (error: unknown) {
-            console.error("Error:", error)
-            res.sendStatus(500)
+            sendControllerError(res, error)
+        }
+    }
+
+    public async getProfileTimeline(req: Request, res: Response): Promise<void> {
+        try {
+            const athleteId = parseNumericId(req.params.id, "id")
+
+            const athleteExists = await this.athleteService.getAthleteExists(athleteId)
+            if (!athleteExists) {
+                res.status(404).json({ error: "athlete not exists" })
+                return
+            }
+
+            const from = parseDateParam(req.query.from, "from")
+            const to = parseDateParam(req.query.to, "to")
+            const segment = parseSegmentParam(req.query.segment)
+
+            const response = await this.athleteService.getAthleteProfileTimeline(athleteId, {
+                from,
+                to,
+                segment,
+            })
+
+            res.status(200).json(response)
+        } catch (error: unknown) {
+            sendControllerError(res, error)
+        }
+    }
+
+    public async getProfileSummary(req: Request, res: Response): Promise<void> {
+        try {
+            const athleteId = parseNumericId(req.params.id, "id")
+
+            const athleteExists = await this.athleteService.getAthleteExists(athleteId)
+            if (!athleteExists) {
+                res.status(404).json({ error: "athlete not exists" })
+                return
+            }
+
+            const from = parseDateParam(req.query.from, "from")
+            const to = parseDateParam(req.query.to, "to")
+            const segment = parseSegmentParam(req.query.segment)
+
+            const response = await this.athleteService.getAthleteProfileSummary(athleteId, {
+                from,
+                to,
+                segment,
+            })
+
+            res.status(200).json(response)
+        } catch (error: unknown) {
+            sendControllerError(res, error)
         }
     }
 }

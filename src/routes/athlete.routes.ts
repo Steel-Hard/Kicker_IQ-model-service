@@ -12,6 +12,16 @@ class AthleteRoutes {
             this.url + "/metrics",
             this.athleteController.getMetrics.bind(this.athleteController)
         )
+
+        this.router.get(
+            this.url + "/:id/profile-timeline",
+            this.athleteController.getProfileTimeline.bind(this.athleteController)
+        )
+
+        this.router.get(
+            this.url + "/:id/profile-summary",
+            this.athleteController.getProfileSummary.bind(this.athleteController)
+        )
     }
 
     public getRouter() {
