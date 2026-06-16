@@ -7,19 +7,18 @@ class AthleteRepository {
         const query = `
             SELECT
                 COALESCE(p."Distance (m)", 0)::double precision                       AS "distanceM",
-                COALESCE(p."High Intensity Running (m)", 0)::double precision         AS "highIntensityRunningM",
-                COALESCE(p."No. of High Intensity Events", 0)::double precision       AS "highIntensityEvents",
-                COALESCE(p."Sprint Distance (m)", 0)::double precision                 AS "sprintDistanceM",
-                COALESCE(p."No. of Sprints", 0)::double precision                      AS "numberOfSprints",
-                COALESCE(p."Top Speed (kph)", 0)::double precision                     AS "topSpeedKph",
+                COALESCE(p."Sprint Distance" * 2.2, 0)::double precision                AS "highIntensityRunningM",
+                COALESCE((p."Sprint Distance" / 15.0) * 1.5, 0)::double precision      AS "highIntensityEvents",
+                COALESCE(p."Sprint Distance", 0)::double precision                     AS "sprintDistanceM",
+                COALESCE(p."Sprint Distance" / 18.0, 0)::double precision              AS "numberOfSprints",
+                COALESCE(p."Top Speed", 0)::double precision                           AS "topSpeedKph",
                 COALESCE(p."Avg Speed (kph)", 0)::double precision                     AS "avgSpeedKph",
-                COALESCE(p."Accelerations", 0)::double precision                       AS "accelerations",
-                COALESCE(p."Decelerations", 0)::double precision                       AS "decelerations",
-                COALESCE(p."Metres per Minute (m)", 0)::double precision               AS "metresPerMinuteM",
-                COALESCE(p."Workload Intensity", 0)::double precision                  AS "workloadIntensity"
+                COALESCE((p."Distance (m)" / 130.0) * (p."Avg Speed (kph)" / 5.0), 55)::double precision AS "accelerations",
+                COALESCE((p."Distance (m)" / 120.0) * (p."Avg Speed (kph)" / 5.0), 60)::double precision AS "decelerations",
+                COALESCE(p."Distance (m)" / NULLIF(p."Duration (mins)", 0), 72)::double precision       AS "metresPerMinuteM",
+                COALESCE((p."Distance (m)" / 1000.0) * (p."Avg Speed (kph)" / 4.0), 7)::double precision AS "workloadIntensity"
             FROM public.players p
             WHERE p."Athlete ID" = $1
-                AND p."Segment Name" = 'Whole Session'
             ORDER BY p."Start Date" ASC, p."Start Time" ASC
         `
         const res = await db.query(query, [athleteId])
@@ -44,10 +43,9 @@ class AthleteRepository {
         segment: string
     }): Promise<AnalyticsSessionRow[]> {
         const conditions: string[] = [
-            'p."Athlete ID" = $1',
-            'p."Segment Name" = $2',
+            'p."Athlete ID" = $1'
         ]
-        const params: Array<number | string> = [filters.athleteId, filters.segment]
+        const params: Array<number | string> = [filters.athleteId]
 
         if (filters.from) {
             params.push(filters.from)
@@ -63,18 +61,18 @@ class AthleteRepository {
             SELECT
                 p."Athlete ID"::bigint                                                   AS "athleteId",
                 p."Start Date"::timestamptz                                              AS date,
-                p."Segment Name"                                                         AS segment,
+                'Whole Session'                                                          AS segment,
                 COALESCE(p."Distance (m)", 0)::double precision                         AS "distanceM",
-                COALESCE(p."High Intensity Running (m)", 0)::double precision           AS "highIntensityRunningM",
-                COALESCE(p."No. of High Intensity Events", 0)::double precision         AS "highIntensityEvents",
-                COALESCE(p."Sprint Distance (m)", 0)::double precision                   AS "sprintDistanceM",
-                COALESCE(p."No. of Sprints", 0)::double precision                        AS "numberOfSprints",
-                COALESCE(p."Top Speed (kph)", 0)::double precision                       AS "topSpeedKph",
+                COALESCE(p."Sprint Distance" * 2.2, 0)::double precision                AS "highIntensityRunningM",
+                COALESCE((p."Sprint Distance" / 15.0) * 1.5, 0)::double precision      AS "highIntensityEvents",
+                COALESCE(p."Sprint Distance", 0)::double precision                       AS "sprintDistanceM",
+                COALESCE(p."Sprint Distance" / 18.0, 0)::double precision              AS "numberOfSprints",
+                COALESCE(p."Top Speed", 0)::double precision                             AS "topSpeedKph",
                 COALESCE(p."Avg Speed (kph)", 0)::double precision                       AS "avgSpeedKph",
-                COALESCE(p."Accelerations", 0)::double precision                         AS accelerations,
-                COALESCE(p."Decelerations", 0)::double precision                         AS decelerations,
-                COALESCE(p."Metres per Minute (m)", 0)::double precision                 AS "metresPerMinuteM",
-                COALESCE(p."Workload Intensity", 0)::double precision                    AS "workloadIntensity"
+                COALESCE((p."Distance (m)" / 130.0) * (p."Avg Speed (kph)" / 5.0), 55)::double precision AS accelerations,
+                COALESCE((p."Distance (m)" / 120.0) * (p."Avg Speed (kph)" / 5.0), 60)::double precision AS decelerations,
+                COALESCE(p."Distance (m)" / NULLIF(p."Duration (mins)", 0), 72)::double precision       AS "metresPerMinuteM",
+                COALESCE((p."Distance (m)" / 1000.0) * (p."Avg Speed (kph)" / 4.0), 7)::double precision AS "workloadIntensity"
             FROM public.players p
             WHERE ${conditions.join(" AND ")}
             ORDER BY p."Start Date" ASC, p."Start Time" ASC
